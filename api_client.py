@@ -1,23 +1,27 @@
 # -*- coding: utf-8 -*-
 import requests
 
-from storage import save_to_file
 
-FAVORITE_CURRENCIES = ["USD", "EUR", "GBP", "RUB"]
+def get_currency_rates(base: str) -> dict | None:
+    """
+    Делает GET-запрос к open.er-api.com и возвращает dict.
+    """
+    url = f"https://open.er-api.com/v6/latest/{base}"
 
-
-def get_currency_rate(currency_code: str) -> dict | None:
-    response = requests.get(f"https://open.er-api.com/v6/latest/{currency_code}")
-    if response.status_code != 200:
+    try:
+        response = requests.get(url, timeout=10)
+    except requests.RequestException:
+        print("Ошибка сети. Проверьте подключение к интернету.")
         return None
-    return response.json()
 
+    if response.status_code != 200:
+        print(f"Ошибка API: статус {response.status_code}")
+        return None
 
-def update_currency_rates() -> None:
-    all_data = {}
-    for currency in FAVORITE_CURRENCIES:
-        rate = get_currency_rate(currency)
-        if rate:
-            all_data[currency] = rate
-    save_to_file(all_data)
-    print("Курсы валют обновлены.")
+    data = response.json()
+
+    if data.get("result") != "success":
+        print("Ошибка API: некорректный ответ сервера.")
+        return None
+
+    return data
